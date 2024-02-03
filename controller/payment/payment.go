@@ -2,7 +2,6 @@ package payment
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -10,20 +9,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/khunmostz24/COURTFIELD-RESERVATION-API-service/artifact/model"
 	"github.com/khunmostz24/COURTFIELD-RESERVATION-API-service/artifact/proxy"
-	"github.com/khunmostz24/COURTFIELD-RESERVATION-API-service/model"
+	"github.com/khunmostz24/COURTFIELD-RESERVATION-API-service/controller/booking"
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
 type Body struct {
-	Amount      string    `json:"amount"`
-	Reservation time.Time `json:"reservation_time"`
+	Amount          string                   `json:"amount"`
+	BookingProducts []booking.BookingProduct `json:"bookingProducts"`
 }
 
 var omisePublicKey string = os.Getenv("OMISE_PUBLIC_KEY")
 var omiseSecretKey string = os.Getenv("OMISE_SECRET_KEY")
 
-func PaymentQrCode(c echo.Context, db *sql.DB) error {
+func PaymentQrCode(c echo.Context, db *gorm.DB) error {
 
 	var body Body = Body{}
 	err := c.Bind(&body)
@@ -34,7 +35,6 @@ func PaymentQrCode(c echo.Context, db *sql.DB) error {
 	// ทำ HTTP POST
 	url := fmt.Sprintf("%s/charges", proxy.OMISE_URL)
 	bodyPayload := fmt.Sprintf("amount=%s&currency=THB&source[type]=promptpay", body.Amount)
-	fmt.Printf(bodyPayload)
 	payload := strings.NewReader(bodyPayload)
 
 	req, err := http.NewRequest("POST", url, payload)
@@ -65,15 +65,29 @@ func PaymentQrCode(c echo.Context, db *sql.DB) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error parsing response"})
 	}
 
+	const layout = "2006-01-02T15:04:05Z"
+	convertCreateAt, err := time.Parse(layout, omiseCharge.Source.ScannableCode.Image.CreatedAt)
+
+	var payment Payment = Payment{
+		PaymentID:       omiseCharge.ID,
+		Amount:          int(omiseCharge.Amount),
+		BookingProducts: body.BookingProducts,
+		Source:          omiseCharge.Source.ScannableCode.Image.DownloadURI,
+		PaymentMethod:   "promptpay",
+		Status:          omiseCharge.Status,
+		CreatedAt:       convertCreateAt,
+		UpdatedAt:       time.Now(),
+	}
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"message": "success",
-		"data":    omiseCharge,
+		"data":    payment,
 	})
 
 }
 
-func GetPaymentStatus(c echo.Context, db *sql.DB) error {
-	id := c.QueryParam("id")
+func GetPaymentStatus(c echo.Context, db *gorm.DB) error {
+	id := c.Param("id")
 	url := fmt.Sprintf("%s/charges/%s", proxy.OMISE_URL, id)
 
 	req, err := http.NewRequest("GET", url, strings.NewReader(""))
@@ -104,8 +118,22 @@ func GetPaymentStatus(c echo.Context, db *sql.DB) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Error parsing response"})
 	}
 
+	const layout = "2006-01-02T15:04:05Z"
+	convertCreateAt, err := time.Parse(layout, omiseCharge.Source.ScannableCode.Image.CreatedAt)
+
+	var payment Payment = Payment{
+		PaymentID:       omiseCharge.ID,
+		Amount:          int(omiseCharge.Amount),
+		BookingProducts: []booking.BookingProduct{},
+		Source:          omiseCharge.Source.ScannableCode.Image.DownloadURI,
+		PaymentMethod:   "promptpay",
+		Status:          omiseCharge.Status,
+		CreatedAt:       convertCreateAt,
+		UpdatedAt:       time.Now(),
+	}
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"message": "success",
-		"data":    omiseCharge,
+		"data":    payment,
 	})
 }
