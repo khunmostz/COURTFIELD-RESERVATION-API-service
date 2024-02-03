@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"os"
 	"time"
 
@@ -25,4 +26,25 @@ func (service *JWTService) GenerateToken(username string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+}
+
+func (service *JWTService) ValidateTokenExpire(tokenString string) error {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	claims, ok := token.Claims.(*CustomClaims)
+	if !ok || !token.Valid {
+		return errors.New("Invalid token")
+	}
+
+	if time.Now().Unix() > claims.ExpiresAt {
+		return errors.New("Token has expired")
+	}
+
+	return nil
 }

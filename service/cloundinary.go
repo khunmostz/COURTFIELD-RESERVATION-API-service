@@ -11,7 +11,7 @@ import (
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 )
 
-type Cloudinary struct {}
+type Cloudinary struct{}
 
 func (service *Cloudinary) Credentials() (*cloudinary.Cloudinary, context.Context) {
 	// Add your Cloudinary credentials, set configuration parameter
@@ -24,11 +24,11 @@ func (service *Cloudinary) Credentials() (*cloudinary.Cloudinary, context.Contex
 	return cld, ctx
 }
 
-func (service *Cloudinary) UploadImage(cld *cloudinary.Cloudinary, ctx context.Context, folderName string) string {
+func (service *Cloudinary) UploadImage(cld *cloudinary.Cloudinary, ctx context.Context, folderName string, fileName interface{}) string {
 
 	// Upload the image.
 	// Set the asset's public ID and allow overwriting the asset with new versions
-	resp, err := cld.Upload.Upload(ctx, "assets/NationalGeographic_2572187_3x4.jpg", uploader.UploadParams{
+	resp, err := cld.Upload.Upload(ctx, fileName, uploader.UploadParams{
 		Folder:         folderName,
 		UniqueFilename: api.Bool(false),
 		Overwrite:      api.Bool(true)})
