@@ -1,5 +1,3 @@
 package proxy
 
-import "os"
-
-var OMISE_URL = os.Getenv("OMISE_URL")
+var OMISE_URL = "https://api.omise.co"

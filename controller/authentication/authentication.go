@@ -2,7 +2,9 @@ package authentication
 
 import (
 	"net/http"
+	"time"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/khunmostz24/COURTFIELD-RESERVATION-API-service/artifact/proxy/response"
 	"github.com/khunmostz24/COURTFIELD-RESERVATION-API-service/service"
 	"github.com/labstack/echo/v4"
@@ -21,7 +23,6 @@ func checkPasswordHash(password, hash string) bool {
 }
 
 func Register(c echo.Context, db *gorm.DB) error {
-
 	cloudinaryInstance := service.Cloudinary{}
 	cld, ctx := cloudinaryInstance.Credentials()
 	file, err := c.FormFile("imageUrl")
@@ -35,26 +36,89 @@ func Register(c echo.Context, db *gorm.DB) error {
 	hashedPassword, err := hashPassword(c.FormValue("password"))
 
 	user := User{
-		ImageURL:       cloudinaryInstance.UploadImage(cld, ctx, "productUrl", file),
 		Name:           c.FormValue("username"),
 		Password:       hashedPassword,
+		Email:          c.FormValue("email"),
 		Identification: c.FormValue("identification"),
 	}
 
 	// Check if the username already exists
-	if err := db.Where("username = ?", c.FormValue("username")).First(&user).Error; err == nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Username already exists"})
+	if err := db.Where("name = ?", c.FormValue("username")).First(&user).Error; err == nil {
+		return c.JSON(http.StatusBadRequest, response.BaseResponse{
+			Message: "error",
+			Data:    "Username already exists",
+		})
 	}
 
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to hash password"})
-	}
+	user.ImageURL = cloudinaryInstance.UploadImage(cld, ctx, "profileUrl", file)
 
 	if err := db.Create(&user).Error; err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create user"})
+		return c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Message: "error",
+			Data:    err,
+		})
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"message": "User registered successfully",
-	})
+	response := response.BaseResponse{
+		Message: "success",
+		Data:    user,
+	}
+
+	return c.JSON(http.StatusOK, response)
+}
+
+func Login(c echo.Context, db *gorm.DB) error {
+	username := c.FormValue("username")
+	password := c.FormValue("password")
+
+	// Find the user by username
+	var user User
+	if err := db.Where("name = ?", username).First(&user).Error; err != nil {
+		return c.JSON(http.StatusUnauthorized, response.BaseResponse{
+			Message: "error",
+			Data:    "Invalid username",
+		})
+	}
+
+	// Check the password
+	if !checkPasswordHash(password, user.Password) {
+		return c.JSON(http.StatusUnauthorized, response.BaseResponse{
+			Message: "error",
+			Data:    "Invalid password",
+		})
+	}
+
+	jwtInstance := service.JWTService{}
+
+	claims := &jwtCustomClaims{
+		ID:             user.ID,
+		ImageURL:       user.ImageURL,
+		Name:           user.Name,
+		Email:          user.Email,
+		Identification: user.Identification,
+		CreatedAt:      user.CreatedAt,
+		UpdatedAt:      user.UpdatedAt,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * 72).Unix(), // 3 days
+		},
+	}
+
+	// Generate JWT token
+	token, err := jwtInstance.GenerateToken(claims)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Message: "error",
+			Data:    err,
+		})
+	}
+
+	response := response.BaseResponse{
+		Message: "success",
+		Data: Credentials{
+			User:  user,
+			Token: token,
+		},
+	}
+
+	return c.JSON(http.StatusOK, response)
 }

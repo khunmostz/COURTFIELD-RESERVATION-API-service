@@ -2,6 +2,8 @@ package authentication
 
 import (
 	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 type User struct {
@@ -13,4 +15,20 @@ type User struct {
 	Identification string    `json:"identification" gorm:"type:varchar(255)"`
 	CreatedAt      time.Time `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt      time.Time `json:"updated_at" gorm:"autoUpdateTime"`
+}
+
+type Credentials struct {
+	User User `json:"user"`
+	Token string `json:"token"`
+}
+
+type jwtCustomClaims struct {
+	ID             int
+	ImageURL       string
+	Name           string
+	Email          string
+	Identification string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	jwt.StandardClaims
 }

@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"os"
-	"time"
 
 	"github.com/golang-jwt/jwt"
 )
@@ -11,40 +10,40 @@ import (
 type JWTService struct {
 }
 
-type CustomClaims struct {
-	Username string `json:"username"`
-	jwt.StandardClaims
-}
-
-func (service *JWTService) GenerateToken(username string) (string, error) {
-	claims := &CustomClaims{
-		Username: username,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 24).Unix(),
-		},
-	}
-
+func (service *JWTService) GenerateToken(claims jwt.Claims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
 }
 
-func (service *JWTService) ValidateTokenExpire(tokenString string) error {
+func (service *JWTService) ValidateToken(tokenString string) (jwt.Claims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Check the signing method
+		if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok {
+			return nil, errors.New("invalid token signing method")
+		}
+
+		// Return the secret key
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	claims, ok := token.Claims.(*CustomClaims)
-	if !ok || !token.Valid {
-		return errors.New("Invalid token")
+	// Check if the token is valid
+	if !token.Valid {
+		return nil, errors.New("invalid token")
 	}
 
-	if time.Now().Unix() > claims.ExpiresAt {
-		return errors.New("Token has expired")
+	// Return the token claims
+	claims, ok := token.Claims.(jwt.Claims)
+	if !ok {
+		return nil, errors.New("invalid token claims")
 	}
 
-	return nil
+	return claims, nil
 }
