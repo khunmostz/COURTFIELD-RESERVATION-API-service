@@ -32,6 +32,18 @@ func main() {
 		SigningKey: []byte(os.Getenv("JWT_SECRET")),
 	})
 
+	// example of sending email
+	// to := []string{"nuenggame8@gmail.com"}
+	// subject := "Test Email"
+	// body := "Hello, this is a test email from Golang!"
+
+	// err := mail.SendMail(to, subject, body)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// } else {
+	// 	log.Println("Email sent successfully!")
+	// }
+
 	r := e.Group("/api")
 	r.Use(authMiddleware)
 
