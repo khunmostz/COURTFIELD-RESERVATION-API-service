@@ -16,7 +16,7 @@ var Db *gorm.DB
 func Conn() {
 	var err error
 	// Db, err = sql.Open("mysql", "root:gumostza168@tcp(localhost:3306)/courtfield_reservation?parseTime=true")
-	dsn := "root:gumostza168@tcp(127.0.0.1:3306)/courtfield_reservation?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "root:@tcp(127.0.0.1:3306)/courtfield_reservation?charset=utf8mb4&parseTime=True&loc=Local"
 	Db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})

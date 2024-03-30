@@ -26,7 +26,13 @@ func main() {
 	e.Use(middleware.CORS())
 	port := os.Getenv("PORT")
 
-	initialize.Db.AutoMigrate(&products.Product{}, &products.Category{}, &authentication.User{}, &booking.Booking{}, &booking.BookingProduct{}, &payment.Payment{})
+	initialize.Db.AutoMigrate(
+		&products.Product{},
+		&products.Category{},
+		&authentication.User{},
+		&booking.Booking{},
+		&payment.Payment{},
+		&booking.BookingProduct{})
 
 	authMiddleware := echojwt.WithConfig(echojwt.Config{
 		SigningKey: []byte(os.Getenv("JWT_SECRET")),

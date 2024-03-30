@@ -20,6 +20,7 @@ type BookingProduct struct {
 	ID        int       `json:"id" gorm:"primaryKey;autoIncrement"`
 	BookingID int       `json:"bookingId" gorm:"type:int(11);not null"`
 	ProductID int       `json:"productId" gorm:"type:int(11);not null"`
+	PaymentID string    `json:"paymentId" gorm:"type:varchar(100);not null"`
 	CreatedAt time.Time `json:"createdAt" gorm:"autoCreateTime"`
 	UpdatedAt time.Time `json:"updatedAt" gorm:"autoCreateTime"`
 }
