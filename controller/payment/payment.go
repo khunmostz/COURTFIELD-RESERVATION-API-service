@@ -11,6 +11,7 @@ import (
 
 	"github.com/khunmostz24/COURTFIELD-RESERVATION-API-service/artifact/model"
 	"github.com/khunmostz24/COURTFIELD-RESERVATION-API-service/artifact/proxy"
+	"github.com/khunmostz24/COURTFIELD-RESERVATION-API-service/artifact/proxy/response"
 	"github.com/khunmostz24/COURTFIELD-RESERVATION-API-service/controller/booking"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
@@ -21,7 +22,7 @@ type Body struct {
 	BookingProducts []booking.BookingProduct `json:"bookingProducts"`
 }
 
-var omisePublicKey string = os.Getenv("OMISE_PUBLIC_KEY")
+// var omisePublicKey string = os.Getenv("OMISE_PUBLIC_KEY")
 var omiseSecretKey string = os.Getenv("OMISE_SECRET_KEY")
 
 func PaymentQrCode(c echo.Context, db *gorm.DB) error {
@@ -67,16 +68,30 @@ func PaymentQrCode(c echo.Context, db *gorm.DB) error {
 
 	const layout = "2006-01-02T15:04:05Z"
 	convertCreateAt, err := time.Parse(layout, omiseCharge.Source.ScannableCode.Image.CreatedAt)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "convert create at error"})
+	}
 
+	// save booking -> db
+	var bookingProducts []booking.BookingProduct = body.BookingProducts
+
+	// save payment -> db
 	var payment Payment = Payment{
-		PaymentID:       omiseCharge.ID,
-		Amount:          int(omiseCharge.Amount),
-		BookingProducts: body.BookingProducts,
+		PaymentID: omiseCharge.ID,
+		Amount:    int(omiseCharge.Amount),
+		// BookingProducts: body.BookingProducts,
+		BookingProducts: bookingProducts,
 		Source:          omiseCharge.Source.ScannableCode.Image.DownloadURI,
 		PaymentMethod:   "promptpay",
 		Status:          omiseCharge.Status,
 		CreatedAt:       convertCreateAt,
 		UpdatedAt:       time.Now(),
+	}
+	if err := db.Create(&payment).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Message: "error",
+			Data:    err,
+		})
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
@@ -120,6 +135,9 @@ func GetPaymentStatus(c echo.Context, db *gorm.DB) error {
 
 	const layout = "2006-01-02T15:04:05Z"
 	convertCreateAt, err := time.Parse(layout, omiseCharge.Source.ScannableCode.Image.CreatedAt)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "convert create at error"})
+	}
 
 	var payment Payment = Payment{
 		PaymentID:       omiseCharge.ID,
@@ -130,6 +148,13 @@ func GetPaymentStatus(c echo.Context, db *gorm.DB) error {
 		Status:          omiseCharge.Status,
 		CreatedAt:       convertCreateAt,
 		UpdatedAt:       time.Now(),
+	}
+
+	if err := db.Save(&payment).Error; err != nil {
+		return c.JSON(http.StatusInternalServerError, response.BaseResponse{
+			Message: "error",
+			Data:    err,
+		})
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{

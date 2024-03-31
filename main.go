@@ -93,7 +93,7 @@ func main() {
 		return payment.PaymentQrCode(c, initialize.Db)
 	})
 
-	e.GET("/create/payment/:id", func(c echo.Context) error {
+	e.GET("/status/payment/:id", func(c echo.Context) error {
 		return payment.GetPaymentStatus(c, initialize.Db)
 	})
 
