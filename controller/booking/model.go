@@ -6,6 +6,7 @@ import (
 
 type Booking struct {
 	BookingID     int       `gorm:"primaryKey;autoIncrement" json:"bookingId"`
+	ProductID     int       `gorm:"not null" json:"productId",`
 	UserID        int       `gorm:"not null" json:"userId"`
 	StartTime     time.Time `gorm:"not null" json:"startTime"`
 	EndTime       time.Time `gorm:"not null" json:"endTime"`

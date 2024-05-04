@@ -69,7 +69,7 @@ func main() {
 		return products.Create(c, initialize.Db)
 	})
 
-	r.GET("/products", func(c echo.Context) error {
+	e.GET("/products", func(c echo.Context) error {
 		return products.GetAll(c, initialize.Db)
 	})
 
