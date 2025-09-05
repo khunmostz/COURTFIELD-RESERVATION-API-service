@@ -26,11 +26,29 @@ func main() {
 	e.Use(middleware.CORS())
 	port := os.Getenv("PORT")
 
-	initialize.Db.AutoMigrate(&products.Product{}, &products.Category{}, &authentication.User{}, &booking.Booking{}, &booking.BookingProduct{}, &payment.Payment{})
+	initialize.Db.AutoMigrate(
+		&products.Product{},
+		&products.Category{},
+		&authentication.User{},
+		&booking.Booking{},
+		&payment.Payment{},
+		&booking.BookingProduct{})
 
 	authMiddleware := echojwt.WithConfig(echojwt.Config{
 		SigningKey: []byte(os.Getenv("JWT_SECRET")),
 	})
+
+	// example of sending email
+	// to := []string{"nuenggame8@gmail.com"}
+	// subject := "Test Email"
+	// body := "Hello, this is a test email from Golang!"
+
+	// err := mail.SendMail(to, subject, body)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// } else {
+	// 	log.Println("Email sent successfully!")
+	// }
 
 	r := e.Group("/api")
 	r.Use(authMiddleware)
@@ -51,7 +69,7 @@ func main() {
 		return products.Create(c, initialize.Db)
 	})
 
-	r.GET("/products", func(c echo.Context) error {
+	e.GET("/products", func(c echo.Context) error {
 		return products.GetAll(c, initialize.Db)
 	})
 
@@ -75,7 +93,7 @@ func main() {
 		return payment.PaymentQrCode(c, initialize.Db)
 	})
 
-	e.GET("/create/payment/:id", func(c echo.Context) error {
+	e.GET("/status/payment/:id", func(c echo.Context) error {
 		return payment.GetPaymentStatus(c, initialize.Db)
 	})
 

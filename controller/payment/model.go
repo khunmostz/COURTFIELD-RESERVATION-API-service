@@ -8,7 +8,7 @@ import (
 
 type Payment struct {
 	PaymentID       string                   `json:"paymentId" gorm:"type:varchar(255);primaryKey;uniqueIndex:idx_payment_id"`
-	BookingProducts []booking.BookingProduct `gorm:"foreignKey:PaymentID" json:"bookingProducts"`
+	BookingProducts []booking.BookingProduct `gorm:"not null" json:"bookingProducts"`
 	Source          string                   `json:"source" gorm:"type:varchar(255)"`
 	Amount          int                      `json:"amount" gorm:"type:int(11)"`
 	PaymentMethod   string                   `json:"paymentMethod" gorm:"type:varchar(255)"`
